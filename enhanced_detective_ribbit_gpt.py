@@ -1,84 +1,56 @@
-
 import streamlit as st
-import openai
-import random
+from openai import OpenAI
+import os
 
-# Set up the OpenAI API key from secrets
-client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Load OpenAI API Key securely
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Page config
-st.set_page_config(page_title="Detective Ribbit 🐸", page_icon="🐸")
+st.set_page_config(page_title="Marketing Stack Matcher", page_icon="🧩")
+st.title("🧩 Marketing Tool Match GPT")
 
-# Mystery prompts to rotate through
-mysteries = [
-    "Who stole the last donut from the teacher's lounge? A raccoon? A backpack? Or the principal’s chair?",
-    "Why are there muddy footprints on the ceiling? Did someone walk upside-down?",
-    "Who hid all the whiteboard markers in the hamster cage? 🐹",
-    "Why is the class goldfish wearing sunglasses?",
-    "Who turned all the cafeteria trays upside down?",
-    "Why is the school mascot wearing a tutu?",
-    "Who put googly eyes on all the pencils?"
-]
+# Default assistant greeting message
+default_message = (
+    "Hey there! 👋 I’m Marketing Tool Match GPT, created by LumelaWeb. "
+    "My job is to help small business owners, solopreneurs, and consultants like you find the right marketing tools "
+    "that actually fit your business — no fluff, no overwhelm.\n\n"
+    "Whether you're building your first system or trying to clean up a tech mess, I help you match your goals and "
+    "growth plans with tools for things like:\n\n"
+    "- CRM (Customer Relationship Management)\n"
+    "- Email marketing\n"
+    "- Booking/calendar tools\n"
+    "- Landing pages\n"
+    "- Analytics\n"
+    "…and more.\n\n"
+    "I’m built on the same strategic approach LumelaWeb uses in their 90-Day Website Growth Blueprint. "
+    "If you'd rather talk to a human, you can always book a free 30-minute call here: https://calendly.com/lumelaweb/30min\n\n"
+    "Want me to help match you with the right tools? I’ll just need to ask a few quick questions. Ready to get started?"
+)
 
-# Initialize messages and mystery
+# Session initialization
 if "messages" not in st.session_state:
-    st.session_state.selected_mystery = random.choice(mysteries)
     st.session_state.messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are Detective Ribbit, a silly frog detective who solves classroom mysteries with the help of 4th and 5th graders. "
-                "You make funny guesses, ask for silly clues, and encourage creativity. Every case is wild and includes goofy suspects like staplers, bananas, or invisible hamsters. "
-                "You always end messages with a funny frog sound or pun (e.g. 'Ribbit-ribbit, I’m on it!'). Make it fun, interactive, and never too scary. Ask one question at a time."
-            )
-        },
-        {
-            "role": "assistant",
-            "content": (
-                f"🎩🐸 Welcome to the Detective Ribbit Mystery Agency! I'm Detective Ribbit, the finest froggy investigator this side of the swamp.\n\n"
-                f"Today's mystery: *{st.session_state.selected_mystery}*\n\n"
-                "Was it the janitor's pet raccoon? A sneaky backpack? Or maybe… the principal’s office chair?!\n\n"
-                "What’s your first clue, detective? Ribbit-ribbit, let’s hop to it!"
-            )
-        }
+        {"role": "assistant", "content": default_message}
     ]
-
-# Image generation for the mystery scene
-if "mystery_image_url" not in st.session_state:
-    image_prompt = f"A colorful, cartoon-style digital illustration depicting this scene: {st.session_state.selected_mystery}"
-    image_response = client.images.generate(
-        model="dall-e-3",
-        prompt=image_prompt,
-        size="1024x1024",
-        quality="standard",
-        n=1
-    )
-    st.session_state.mystery_image_url = image_response.data[0].url
-
-# Display image
-st.image(st.session_state.mystery_image_url, caption="🖼️ Mystery Scene")
 
 # Display chat history
 for msg in st.session_state.messages:
-    st.markdown(f"**{msg['role'].capitalize()}**: {msg['content']}")
+    st.chat_message(msg["role"]).write(msg["content"])
 
-# Text input with dynamic key
-if "input_toggle" not in st.session_state:
-    st.session_state.input_toggle = 0
+# Get user input
+if user_prompt := st.chat_input("What's your first question or tell me about your business?"):
+    st.session_state.messages.append({"role": "user", "content": user_prompt})
+    with st.chat_message("user"):
+        st.write(user_prompt)
 
-input_key = f"user_input_{st.session_state.input_toggle}"
-user_input = st.text_input("What do you think happened?", key=input_key)
-
-if user_input:
-    st.session_state.messages.append({"role": "user", "content": user_input})
-
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=st.session_state.messages
-    )
-
-    assistant_reply = response.choices[0].message.content
-    st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
-
-    st.session_state.input_toggle += 1
-    st.experimental_rerun()
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=st.session_state.messages,
+                )
+                assistant_reply = response.choices[0].message.content
+                st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
+                st.write(assistant_reply)
+            except Exception as e:
+                st.error(f"Oops! Something went wrong: {e}")
