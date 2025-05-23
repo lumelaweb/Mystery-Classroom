@@ -11,16 +11,16 @@ st.set_page_config(page_title="Detective Ribbit 🐸", page_icon="🐸")
 
 # Mystery prompts to rotate through
 mysteries = [
-    "Who stole the last donut from the teacher's lounge? 🍩",
-    "Why are there muddy footprints on the ceiling? 👣",
+    "Who stole the last donut from the teacher's lounge? A raccoon? A backpack? Or the principal’s chair?",
+    "Why are there muddy footprints on the ceiling? Did someone walk upside-down?",
     "Who hid all the whiteboard markers in the hamster cage? 🐹",
-    "Why is the class goldfish wearing sunglasses? 🕶️🐟",
-    "Who turned all the cafeteria trays upside down? 🍽️",
-    "Why is the school mascot wearing a tutu? 🐯🩰",
-    "Who put googly eyes on all the pencils? 👀✏️"
+    "Why is the class goldfish wearing sunglasses?",
+    "Who turned all the cafeteria trays upside down?",
+    "Why is the school mascot wearing a tutu?",
+    "Who put googly eyes on all the pencils?"
 ]
 
-# Initialize messages and random mystery
+# Initialize messages and mystery
 if "messages" not in st.session_state:
     st.session_state.selected_mystery = random.choice(mysteries)
     st.session_state.messages = [
@@ -43,11 +43,26 @@ if "messages" not in st.session_state:
         }
     ]
 
-# Display chat
+# Image generation for the mystery scene
+if "mystery_image_url" not in st.session_state:
+    image_prompt = f"A colorful, cartoon-style digital illustration depicting this scene: {st.session_state.selected_mystery}"
+    image_response = client.images.generate(
+        model="dall-e-3",
+        prompt=image_prompt,
+        size="1024x1024",
+        quality="standard",
+        n=1
+    )
+    st.session_state.mystery_image_url = image_response.data[0].url
+
+# Display image
+st.image(st.session_state.mystery_image_url, caption="🖼️ Mystery Scene")
+
+# Display chat history
 for msg in st.session_state.messages:
     st.markdown(f"**{msg['role'].capitalize()}**: {msg['content']}")
 
-# Handle input with toggle to reset text
+# Text input with dynamic key
 if "input_toggle" not in st.session_state:
     st.session_state.input_toggle = 0
 
